@@ -59,11 +59,19 @@ const getSelectedAgentValue = (
   );
 
   if (selectedAgent) {
-    return isDefaultAssistant(selectedAgent)
-      ? `Default agent - ${selectedAgent.graph_id}`
+    const agentName = isDefaultAssistant(selectedAgent)
+      ? "Default agent"
       : selectedAgent.name;
+    // Optionally include graph_id for default agents if needed for clarity
+    // return isDefaultAssistant(selectedAgent) ? `${agentName} - ${selectedAgent.graph_id}` : agentName;
+    return agentName;
   }
   return "";
+};
+
+// Helper to get the display name for filtering
+const getAgentDisplayName = (agent: Agent): string => {
+  return isDefaultAssistant(agent) ? "Default agent" : agent.name;
 };
 
 export function AgentsCombobox({
@@ -76,6 +84,47 @@ export function AgentsCombobox({
   className,
 }: AgentsComboboxProps) {
   const deployments = getDeployments();
+  const [searchQuery, setSearchQuery] = React.useState("");
+
+  // Memoize the filtered and grouped agents
+  const filteredGroupedAgents = React.useMemo(() => {
+    const lowerCaseQuery = searchQuery.toLowerCase();
+
+    // Filter agents based on the search query
+    const filteredAgents = agents.filter((agent) =>
+      getAgentDisplayName(agent).toLowerCase().includes(lowerCaseQuery),
+    );
+    // Group filtered agents by deployment and then by graph
+    const grouped: Record<
+      string,
+      { name: string; graphs: Record<string, Agent[]> }
+    > = {};
+
+    deployments.forEach((deployment) => {
+      const deploymentAgents = filteredAgents.filter(
+        (agent) => agent.deploymentId === deployment.id,
+      );
+
+      if (deploymentAgents.length > 0) {
+        const agentsGroupedByGraphs = groupAgentsByGraphs(deploymentAgents);
+        const graphs: Record<string, Agent[]> = {};
+        agentsGroupedByGraphs.forEach((agentGroup) => {
+          if (agentGroup.length > 0) {
+            // Sort agents within the graph group
+            graphs[agentGroup[0].graph_id] = sortAgentGroup(agentGroup);
+          }
+        });
+        // Only add deployment if it has valid graph groups
+        if (Object.keys(graphs).length > 0) {
+          grouped[deployment.id] = { name: deployment.name, graphs };
+        }
+      }
+    });
+
+    return grouped;
+  }, [agents, searchQuery, deployments]);
+
+  const hasResults = Object.keys(filteredGroupedAgents).length > 0;
 
   return (
     <Popover
@@ -97,58 +146,49 @@ export function AgentsCombobox({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="min-w-[200px] p-0">
-        <Command>
-          <CommandInput placeholder="Search agents..." />
+        <Command
+          // Disable cmdk's internal filtering, rely on our useMemo filtering
+          filter={(input) => {
+            console.log("filter input", input);
+            return 1;
+          }}
+        >
+          <CommandInput
+            placeholder="Search agents..."
+            value={searchQuery}
+            onValueChange={setSearchQuery} // Update search query state
+          />
           <CommandList>
-            <CommandEmpty>No agents found.</CommandEmpty>
-            {deployments.map((deployment) => {
-              // Filter agents for the current deployment
-              const deploymentAgents = agents.filter(
-                (agent) => agent.deploymentId === deployment.id,
-              );
-              // Group filtered agents by graph
-              const agentsGroupedByGraphs =
-                groupAgentsByGraphs(deploymentAgents);
-
-              // Only render the deployment group if it has agents
-              if (agentsGroupedByGraphs.length === 0) {
-                return null;
-              }
-
-              return (
-                <React.Fragment key={deployment.id}>
+            {!hasResults && <CommandEmpty>No agents found.</CommandEmpty>}
+            {Object.entries(filteredGroupedAgents).map(
+              ([deploymentId, deploymentData], index) => (
+                <React.Fragment key={deploymentId}>
                   <CommandGroup
-                    heading={deployment.name} // Use deployment name as heading
+                    heading={deploymentData.name} // Use deployment name as heading
                     className="[&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium"
                   >
-                    {/* Map over graphs within the deployment */}
-                    {agentsGroupedByGraphs.map((agentGroup) => {
-                      const sortedAgentGroup = sortAgentGroup(agentGroup);
-                      return (
-                        // Nested CommandGroup for the graph
+                    {Object.entries(deploymentData.graphs).map(
+                      ([graphId, agentGroup]) => (
                         <CommandGroup
-                          key={`${deployment.id}-${agentGroup[0].graph_id}`}
-                          heading={agentGroup[0].graph_id} // Use graph_id as heading
-                          // Add some styling/indentation if desired for the nested group
+                          key={`${deploymentId}-${graphId}`}
+                          heading={graphId} // Use graph_id as heading
                           className="ml-2 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-normal"
                         >
-                          {/* Map over agents within the graph */}
-                          {sortedAgentGroup.map((item) => (
+                          {agentGroup.map((item) => (
                             <CommandItem
-                              key={item.assistant_id}
-                              value={`${item.assistant_id}:${item.deploymentId}`}
+                              key={`${item.assistant_id}-${item.deploymentId}`} // Ensure key is unique across deployments
+                              value={`${item.assistant_id}:${item.deploymentId}:${item.name}`}
                               onSelect={(currentValue) => {
                                 setValue?.(
                                   currentValue === value ? "" : currentValue,
                                 );
                                 setOpen?.(false);
+                                setSearchQuery(""); // Clear search on select
                               }}
                               className="flex w-full items-center justify-between"
                             >
                               <p className="line-clamp-1 flex-1 truncate pr-2">
-                                {isDefaultAssistant(item)
-                                  ? "Default agent"
-                                  : item.name}
+                                {getAgentDisplayName(item)}
                               </p>
                               <div className="flex flex-shrink-0 items-center justify-end gap-2">
                                 {isDefaultAssistant(item) && (
@@ -166,13 +206,16 @@ export function AgentsCombobox({
                             </CommandItem>
                           ))}
                         </CommandGroup>
-                      );
-                    })}
+                      ),
+                    )}
                   </CommandGroup>
-                  <CommandSeparator />
+                  {/* Add separator only if it's not the last deployment group */}
+                  {index < Object.keys(filteredGroupedAgents).length - 1 && (
+                    <CommandSeparator />
+                  )}
                 </React.Fragment>
-              );
-            })}
+              ),
+            )}
           </CommandList>
         </Command>
       </PopoverContent>

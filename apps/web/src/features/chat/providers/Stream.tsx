@@ -87,6 +87,7 @@ export const StreamProvider: React.FC<{ children: ReactNode }> = ({
     const [agentId_, deploymentId_] = value.split(":");
     setAgentId(agentId_);
     setDeploymentId(deploymentId_);
+    setValue("");
   };
 
   // Show the form if we: don't have an API URL, or don't have an assistant ID
