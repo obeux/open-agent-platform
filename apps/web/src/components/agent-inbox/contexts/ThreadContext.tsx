@@ -18,6 +18,8 @@ import {
   OFFSET_PARAM,
   LANGCHAIN_API_KEY_LOCAL_STORAGE_KEY,
   IMPROPER_SCHEMA,
+  THREAD_ID_PARAM,
+  DATE_SORT_PARAM,
 } from "../constants";
 import {
   getInterruptFromThread,
@@ -197,25 +199,22 @@ export function ThreadsProvider<
   const limitParam = searchParams.get(LIMIT_PARAM);
   const offsetParam = searchParams.get(OFFSET_PARAM);
   const inboxParam = searchParams.get(INBOX_PARAM);
+  const dateSortParam = searchParams.get(DATE_SORT_PARAM);
+  
+  // Track previous parameter values to avoid unnecessary fetches
+  const prevParamsRef = React.useRef({
+    limit: limitParam,
+    offset: offsetParam,
+    inbox: inboxParam,
+    dateSort: dateSortParam
+  });
 
-  React.useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    if (!agentInboxes.length) {
-      return;
-    }
-    const inboxSearchParam = getSearchParam(INBOX_PARAM) as ThreadStatusWithAll;
-    if (!inboxSearchParam) {
-      return;
-    }
-    try {
-      fetchThreads(inboxSearchParam);
-    } catch (e) {
-      logger.error("Error occurred while fetching threads", e);
-    }
-  }, [limitParam, offsetParam, inboxParam, agentInboxes]);
-
+  // Memoize the getSearchParam to ensure it doesn't change on every render
+  const memoizedGetSearchParam = React.useCallback(
+    (name: string) => getSearchParam(name),
+    [getSearchParam]
+  );
+  
   const fetchThreads = React.useCallback(
     async (inbox: ThreadStatusWithAll) => {
       setLoading(true);
@@ -231,11 +230,11 @@ export function ThreadsProvider<
       }
 
       try {
-        const limitQueryParam = getSearchParam(LIMIT_PARAM);
+        const limitQueryParam = memoizedGetSearchParam(LIMIT_PARAM);
         if (!limitQueryParam) {
           throw new Error("Limit query param not found");
         }
-        const offsetQueryParam = getSearchParam(OFFSET_PARAM);
+        const offsetQueryParam = memoizedGetSearchParam(OFFSET_PARAM);
         if (!offsetQueryParam) {
           throw new Error("Offset query param not found");
         }
@@ -251,6 +250,30 @@ export function ThreadsProvider<
           });
           setLoading(false);
           return;
+        }
+
+        // Check for thread ID search
+        const threadIdParam = memoizedGetSearchParam(THREAD_ID_PARAM);
+        
+        // If searching by specific thread ID, use fetchSingleThread instead
+        if (threadIdParam) {
+          try {
+            const singleThread = await fetchSingleThread(threadIdParam);
+            if (singleThread) {
+              setThreadData([singleThread]);
+              setHasMoreThreads(false);
+            } else {
+              setThreadData([]);
+              setHasMoreThreads(false);
+            }
+            setLoading(false);
+            return;
+          } catch (error) {
+            logger.error("Error fetching thread by ID", error);
+            setThreadData([]);
+            setLoading(false);
+            return;
+          }
         }
 
         // Handle inbox filtering differently based on type
@@ -351,12 +374,26 @@ export function ThreadsProvider<
         const results = await Promise.all(processPromises);
         processedData.push(...results);
 
-        const sortedData = processedData.sort((a, b) => {
-          return (
-            new Date(b.thread.created_at).getTime() -
-            new Date(a.thread.created_at).getTime()
-          );
-        });
+        // Apply server-side sorting based on dateSort parameter
+        const dateSortParam = memoizedGetSearchParam(DATE_SORT_PARAM) as "newest" | "oldest" | undefined;
+        const dateSort = dateSortParam || "newest";
+        
+        const sortedData = [...processedData];
+        
+        // Apply date sorting based on the dateSort parameter
+        if (dateSort === "newest") {
+          sortedData.sort((a, b) => {
+            const dateA = new Date(a.thread.updated_at || a.thread.created_at);
+            const dateB = new Date(b.thread.updated_at || b.thread.created_at);
+            return dateB.getTime() - dateA.getTime();
+          });
+        } else {
+          sortedData.sort((a, b) => {
+            const dateA = new Date(a.thread.updated_at || a.thread.created_at);
+            const dateB = new Date(b.thread.updated_at || b.thread.created_at);
+            return dateA.getTime() - dateB.getTime();
+          });
+        }
 
         setThreadData(sortedData);
         setHasMoreThreads(threads.length === limit);
@@ -365,8 +402,69 @@ export function ThreadsProvider<
       }
       setLoading(false);
     },
-    [agentInboxes, getItem, getSearchParam, toast],
+    [agentInboxes, getItem, memoizedGetSearchParam, toast],
   );
+  
+  // Create a stable callback for fetching threads to avoid infinite loops
+  const stableFetchThreads = React.useCallback((inbox: ThreadStatusWithAll) => {
+    // Skip if already loading
+    if (loading) return;
+    
+    try {
+      fetchThreads(inbox);
+    } catch (e) {
+      logger.error("Error occurred while fetching threads", e);
+    }
+  }, [fetchThreads, loading]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    if (!agentInboxes.length) {
+      return;
+    }
+    const inboxSearchParam = memoizedGetSearchParam(INBOX_PARAM) as ThreadStatusWithAll;
+    if (!inboxSearchParam) {
+      return;
+    }
+    
+    // Skip re-fetching if none of the core pagination parameters have changed
+    const currentParams = {
+      limit: limitParam,
+      offset: offsetParam,
+      inbox: inboxParam,
+      dateSort: dateSortParam
+    };
+    
+    const prevParams = prevParamsRef.current;
+    const hasParamsChanged = 
+      prevParams.limit !== currentParams.limit ||
+      prevParams.offset !== currentParams.offset ||
+      prevParams.inbox !== currentParams.inbox ||
+      prevParams.dateSort !== currentParams.dateSort;
+      
+    // Update the ref with current values - do this before early return to track values correctly
+    prevParamsRef.current = {...currentParams};
+    
+    if (!hasParamsChanged) {
+      return;
+    }
+    
+    // For dateSort changes specifically, we want to avoid double-execution in dev mode
+    // and ensure consistent behavior, so use a slightly longer timeout
+    const timeoutDelay = prevParams.dateSort !== currentParams.dateSort ? 100 : 50;
+    
+    // Use a slight delay to avoid React 18 double-effect in dev mode
+    const timerId = setTimeout(() => {
+      // Double-check we're not in a loading state before proceeding
+      if (!loading) {
+        stableFetchThreads(inboxSearchParam);
+      }
+    }, timeoutDelay);
+    
+    return () => clearTimeout(timerId);
+  }, [limitParam, offsetParam, inboxParam, dateSortParam, agentInboxes, stableFetchThreads, memoizedGetSearchParam, loading]);
 
   const fetchSingleThread = React.useCallback(
     async (threadId: string): Promise<ThreadData<ThreadValues> | undefined> => {
@@ -416,7 +514,7 @@ export function ThreadsProvider<
       }
 
       // Check for special human_response_needed status
-      const inbox = getSearchParam(INBOX_PARAM) as ThreadStatusWithAll;
+      const inbox = memoizedGetSearchParam(INBOX_PARAM) as ThreadStatusWithAll;
       if (inbox === "human_response_needed") {
         return {
           thread: currentThread,
@@ -434,7 +532,7 @@ export function ThreadsProvider<
         invalidSchema: undefined,
       };
     },
-    [agentInboxes, getItem, getSearchParam],
+    [agentInboxes, getItem, memoizedGetSearchParam],
   );
 
   const ignoreThread = async (threadId: string) => {

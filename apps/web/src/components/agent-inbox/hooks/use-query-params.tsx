@@ -53,12 +53,12 @@ export function useQueryParams() {
     [router, pathname],
   );
 
-  const getSearchParam = (name: string): string | undefined => {
-    if (typeof window === "undefined") return;
-    const currentUrl = new URL(window.location.href);
-    const params = new URLSearchParams(currentUrl.search);
-    return params.get(name) || undefined;
-  };
+  const getSearchParam = React.useCallback((name: string): string | undefined => {
+    if (typeof window === "undefined") return undefined;
+    
+    const param = searchParams.get(name);
+    return param || undefined;
+  }, [searchParams]);
 
   return { searchParams, updateQueryParams, getSearchParam };
 }

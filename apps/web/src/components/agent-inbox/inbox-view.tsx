@@ -2,14 +2,16 @@ import { useThreadsContext } from "@/components/agent-inbox/contexts/ThreadConte
 import { InboxItem } from "./components/inbox-item";
 import React from "react";
 import { useQueryParams } from "./hooks/use-query-params";
-import { INBOX_PARAM, LIMIT_PARAM, OFFSET_PARAM } from "./constants";
+import { INBOX_PARAM, LIMIT_PARAM, OFFSET_PARAM, THREAD_ID_PARAM, DATE_SORT_PARAM, VIEW_STATE_THREAD_QUERY_PARAM } from "./constants";
 import { ThreadStatusWithAll } from "./types";
 import { Pagination } from "./components/pagination";
 import { Inbox as InboxIcon, LoaderCircle } from "lucide-react";
 import { InboxButtons } from "./components/inbox-buttons";
 import { BackfillBanner } from "./components/backfill-banner";
-import { forceInboxBackfill } from "./utils/backfill";
 import { logger } from "./utils/logger";
+import { InboxSearch } from "./components/inbox-search";
+import { InterruptFilter } from "./components/interrupt-filter";
+import { ActiveFilters } from "./components/active-filters";
 
 interface AgentInboxViewProps<
   _ThreadValues extends Record<string, any> = Record<string, any>,
@@ -21,169 +23,112 @@ interface AgentInboxViewProps<
 export function AgentInboxView<
   ThreadValues extends Record<string, any> = Record<string, any>,
 >({ saveScrollPosition, containerRef }: AgentInboxViewProps<ThreadValues>) {
-  const { searchParams, updateQueryParams, getSearchParam } = useQueryParams();
-  const { loading, threadData, agentInboxes, clearThreadData } =
-    useThreadsContext<ThreadValues>();
-  const selectedInbox = (getSearchParam(INBOX_PARAM) ||
-    "interrupted") as ThreadStatusWithAll;
+  const { updateQueryParams, getSearchParam } = useQueryParams();
+  const { loading, threadData, fetchThreads } = useThreadsContext<ThreadValues>();
+  
+  const selectedInbox = getSearchParam(INBOX_PARAM) as ThreadStatusWithAll;
+  const offsetParam = getSearchParam(OFFSET_PARAM);
+  const limitParam = getSearchParam(LIMIT_PARAM);
+  const _offset = offsetParam ? parseInt(offsetParam, 10) : undefined;
+  const _limit = limitParam ? parseInt(limitParam, 10) : undefined;
+  
+  const threadId = getSearchParam(THREAD_ID_PARAM);
+  const dateSortParam = getSearchParam(DATE_SORT_PARAM) as "newest" | "oldest" | undefined;
+  const dateSort = dateSortParam || "newest";
+  
+  // Create refs to track previous values to avoid infinite loops
+  const prevThreadIdRef = React.useRef<string | null>(null);
+  const prevDateSortRef = React.useRef<string | null>(null);
+  
+  // Keep existing scroll position logic
   const scrollableContentRef = React.useRef<HTMLDivElement>(null);
-  const [hasAttemptedRefresh, setHasAttemptedRefresh] = React.useState(false);
 
-  // Check if we've already attempted a refresh for this session
-  React.useEffect(() => {
-    if (typeof window !== "undefined") {
-      const sessionId = new Date().toDateString();
-      const hasRefreshed = localStorage.getItem(`inbox-refreshed-${sessionId}`);
-      setHasAttemptedRefresh(hasRefreshed === "true");
+  const noThreadsFound =
+    threadData !== undefined && threadData.length === 0;
+
+  // Filter thread data based on search
+  const threadDataToRender = React.useMemo(() => {
+    // If searching for a specific thread ID, filter by that
+    if (threadId) {
+      return threadData.filter(td => td.thread.thread_id === threadId);
     }
-  }, []);
-
-  // Auto-refresh inbox IDs once when no threads are found
-  React.useEffect(() => {
-    const autoRefreshInboxes = async () => {
-      if (typeof window === "undefined") return;
-
-      const sessionId = new Date().toDateString();
-      const hasRefreshed = localStorage.getItem(`inbox-refreshed-${sessionId}`);
-
-      if (hasRefreshed === "true") return;
-
-      if (
-        !loading &&
-        !hasAttemptedRefresh &&
-        threadData.length === 0 &&
-        agentInboxes.length > 0
-      ) {
-        // Mark that we've attempted a refresh for this session
-        localStorage.setItem(`inbox-refreshed-${sessionId}`, "true");
-        setHasAttemptedRefresh(true);
-
-        logger.log("Automatically refreshing inbox IDs...");
-        await forceInboxBackfill();
-
-        // Add a small delay before reloading to allow state to settle
-        setTimeout(() => {
-          window.location.reload();
-        }, 100);
-      }
-    };
-
-    autoRefreshInboxes();
-  }, [loading, threadData, agentInboxes, hasAttemptedRefresh]);
-
-  // Register scroll event listener to automatically save scroll position whenever user scrolls
-  React.useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    // Define the scroll handler that will save the current scroll position
-    const handleScroll = () => {
-      // Find the element that's actually scrolling
-      if (
-        scrollableContentRef.current &&
-        scrollableContentRef.current.scrollTop > 0
-      ) {
-        // First check the inner container (thread list)
-        saveScrollPosition(scrollableContentRef.current);
-      } else if (containerRef.current && containerRef.current.scrollTop > 0) {
-        // Then check the outer container
-        saveScrollPosition(containerRef.current);
-      } else if (window.scrollY > 0) {
-        // Finally check the window
-        saveScrollPosition();
-      }
-    };
-
-    // We need to throttle the handler to avoid performance issues
-    let timeout: NodeJS.Timeout | null = null;
-    const throttledScrollHandler = () => {
-      if (!timeout) {
-        timeout = setTimeout(() => {
-          handleScroll();
-          timeout = null;
-        }, 300); // Only call every 300ms
-      }
-    };
-
-    // Add the event listener
-    window.addEventListener("scroll", throttledScrollHandler, {
-      passive: true,
-    });
-
-    // Don't forget to clean up
-    return () => {
-      window.removeEventListener("scroll", throttledScrollHandler);
-      if (timeout) clearTimeout(timeout);
-    };
-  }, [containerRef, saveScrollPosition]);
-
-  const changeInbox = async (inbox: ThreadStatusWithAll) => {
-    // Clear threads from state
-    clearThreadData();
-
-    // Update query params
-    updateQueryParams(
-      [INBOX_PARAM, OFFSET_PARAM, LIMIT_PARAM],
-      [inbox, "0", "10"],
-    );
-  };
-
-  React.useEffect(() => {
-    try {
-      if (typeof window === "undefined") return;
-      const offsetQueryParam = getSearchParam(OFFSET_PARAM);
-      const limitQueryParam = getSearchParam(LIMIT_PARAM);
-      if (!offsetQueryParam) {
-        updateQueryParams(OFFSET_PARAM, "0");
-      }
-      if (!limitQueryParam) {
-        updateQueryParams(LIMIT_PARAM, "10");
-      }
-    } catch (e) {
-      logger.error("Error updating query params", e);
-    }
-  }, [searchParams]);
-
-  const threadDataToRender = React.useMemo(
-    () =>
-      threadData.filter((t) => {
-        if (selectedInbox === "all") return true;
-        return t.status === selectedInbox;
-      }),
-    [selectedInbox, threadData],
-  );
-  const noThreadsFound = !threadDataToRender.length;
-
-  // Correct way to save scroll position before navigation
-  const handleThreadClick = () => {
-    // First try the inner scrollable div
-    if (
-      scrollableContentRef.current &&
-      scrollableContentRef.current.scrollTop > 0
-    ) {
-      saveScrollPosition(scrollableContentRef.current);
-    }
-    // Then try the outer container
-    else if (containerRef.current && containerRef.current.scrollTop > 0) {
-      saveScrollPosition(containerRef.current);
-    }
-    // Finally try window
-    else if (window.scrollY > 0) {
-      saveScrollPosition();
-    }
-    // If none have scroll, find scrollable elements as fallback
-    else {
-      const scrollableElements = document.querySelectorAll(
-        '[class*="overflow"]',
-      );
-      scrollableElements.forEach((el) => {
-        const htmlEl = el as HTMLElement;
-        if (htmlEl.scrollTop > 0) {
-          saveScrollPosition(htmlEl);
-          return;
-        }
+    
+    // Otherwise show all threads with optional date sorting
+    const sortedData = [...threadData];
+    
+    // Apply date sorting
+    if (dateSort === "newest") {
+      sortedData.sort((a, b) => {
+        const dateA = new Date(a.thread.updated_at || a.thread.created_at);
+        const dateB = new Date(b.thread.updated_at || b.thread.created_at);
+        return dateB.getTime() - dateA.getTime();
+      });
+    } else {
+      sortedData.sort((a, b) => {
+        const dateA = new Date(a.thread.updated_at || a.thread.created_at);
+        const dateB = new Date(b.thread.updated_at || b.thread.created_at);
+        return dateA.getTime() - dateB.getTime();
       });
     }
-  };
+    
+    return sortedData;
+  }, [threadData, threadId, dateSort]);
+
+  const handleThreadClick = React.useCallback(
+    (threadId: string) => {
+      try {
+        saveScrollPosition(scrollableContentRef.current);
+        updateQueryParams(
+          VIEW_STATE_THREAD_QUERY_PARAM,
+          threadId,
+        );
+      } catch (e) {
+        logger.error("Error occurred while updating query params", e);
+      }
+    },
+    [updateQueryParams, saveScrollPosition],
+  );
+
+  const changeInbox = React.useCallback(
+    (newInbox: ThreadStatusWithAll) => {
+      if (selectedInbox && newInbox) {
+        try {
+          // When changing inbox tabs, clear any thread ID search
+          if (threadId) {
+            updateQueryParams(THREAD_ID_PARAM);
+          }
+          updateQueryParams([INBOX_PARAM, OFFSET_PARAM], [newInbox, "0"]);
+        } catch (e) {
+          logger.error("Error changing inbox", e);
+        }
+      }
+    },
+    [selectedInbox, threadId, updateQueryParams],
+  );
+
+  React.useEffect(() => {
+    // Skip if no changes or already fetching the same data
+    if (
+      (prevThreadIdRef.current === threadId && prevDateSortRef.current === dateSort) ||
+      !selectedInbox
+    ) {
+      return;
+    }
+    
+    // Update refs with current values
+    prevThreadIdRef.current = threadId || null;
+    prevDateSortRef.current = dateSort;
+    
+    // Only fetch if there's an actual change that requires fetching
+    if ((threadId || dateSort !== "newest")) {
+      // Use setTimeout to prevent potential render loops and double-effects in dev mode
+      const timerId = setTimeout(() => {
+        fetchThreads(selectedInbox);
+      }, 0);
+      
+      return () => clearTimeout(timerId);
+    }
+  }, [threadId, dateSort, selectedInbox, fetchThreads]);
 
   return (
     <div
@@ -193,6 +138,11 @@ export function AgentInboxView<
       <div className="pt-4 pl-5">
         <BackfillBanner />
         <InboxButtons changeInbox={changeInbox} />
+        <div className="mt-4 flex flex-wrap gap-2">
+          <InboxSearch />
+          <InterruptFilter />
+        </div>
+        <ActiveFilters className="mt-2" />
       </div>
       <div
         ref={scrollableContentRef}

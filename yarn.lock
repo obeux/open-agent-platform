@@ -874,6 +874,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@hookform/resolvers@npm:^5.0.1":
+  version: 5.0.1
+  resolution: "@hookform/resolvers@npm:5.0.1"
+  dependencies:
+    "@standard-schema/utils": ^0.3.0
+  peerDependencies:
+    react-hook-form: ^7.55.0
+  checksum: b8470dd14855a9b69249f6ad7948292328f45fc2689ebd28259bcac9cdb826c6feaf276c05333d3c39d0108155a13a10eac905dfadb14c269e2963dcaf345cef
+  languageName: node
+  linkType: hard
+
 "@humanfs/core@npm:^0.19.1":
   version: 0.19.1
   resolution: "@humanfs/core@npm:0.19.1"
@@ -3576,6 +3587,13 @@ __metadata:
   version: 1.11.0
   resolution: "@rushstack/eslint-patch@npm:1.11.0"
   checksum: d1d7e4d36c693b93c06b25022df094ef629b53805db2c7a7ecbb099c34ea525eb96c19f6e5ea5ad1f8b69aba6792cfd8cdd410655b6aa9da15c69c4593019bfc
+  languageName: node
+  linkType: hard
+
+"@standard-schema/utils@npm:^0.3.0":
+  version: 0.3.0
+  resolution: "@standard-schema/utils@npm:0.3.0"
+  checksum: 7084f875d322792f2e0a5904009434c8374b9345b09ba89828b68fd56fa3c2b366d35bf340d9e8c72736ef01793c2f70d350c372ed79845dc3566c58d34b4b51
   languageName: node
   linkType: hard
 
@@ -11568,7 +11586,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-hook-form@npm:^7.52.0":
+"react-hook-form@npm:^7.52.0, react-hook-form@npm:^7.56.1":
   version: 7.56.1
   resolution: "react-hook-form@npm:7.56.1"
   peerDependencies:
@@ -14050,6 +14068,7 @@ __metadata:
     "@codemirror/lang-xml": 6.1.0
     "@eslint/js": ^9.19.0
     "@faker-js/faker": 9.2.0
+    "@hookform/resolvers": ^5.0.1
     "@langchain/anthropic": 0.3.6
     "@langchain/community": 0.3.9
     "@langchain/core": ^0.3.44
@@ -14122,6 +14141,7 @@ __metadata:
     react: ^19.0.0
     react-colorful: 5.6.1
     react-dom: ^19.0.0
+    react-hook-form: ^7.56.1
     react-icons: 5.3.0
     react-json-view: 1.21.3
     react-markdown: ^10.1.0

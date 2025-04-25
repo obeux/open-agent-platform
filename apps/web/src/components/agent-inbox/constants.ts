@@ -11,3 +11,9 @@ export const AGENT_INBOX_GITHUB_README_URL =
 
 export const IMPROPER_SCHEMA = "improper_schema";
 export const STUDIO_NOT_WORKING_TROUBLESHOOTING_URL = `${AGENT_INBOX_GITHUB_README_URL}#the-open-in-studio-button-doesnt-work-for-my-deployed-graphs`;
+
+// Search parameters
+export const THREAD_ID_PARAM = "thread_id";
+export const DATE_SORT_PARAM = "date_sort";
+export const ALLOWED_ACTIONS_PARAM = "allowed_actions";
+export const INTERRUPT_TITLE_PARAM = "interrupt_title";
