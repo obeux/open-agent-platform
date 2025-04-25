@@ -2,7 +2,14 @@ import { useThreadsContext } from "@/components/agent-inbox/contexts/ThreadConte
 import { InboxItem } from "./components/inbox-item";
 import React from "react";
 import { useQueryParams } from "./hooks/use-query-params";
-import { INBOX_PARAM, LIMIT_PARAM, OFFSET_PARAM, THREAD_ID_PARAM, DATE_SORT_PARAM, VIEW_STATE_THREAD_QUERY_PARAM } from "./constants";
+import {
+  INBOX_PARAM,
+  LIMIT_PARAM,
+  OFFSET_PARAM,
+  THREAD_ID_PARAM,
+  DATE_SORT_PARAM,
+  VIEW_STATE_THREAD_QUERY_PARAM,
+} from "./constants";
 import { ThreadStatusWithAll } from "./types";
 import { Pagination } from "./components/pagination";
 import { Inbox as InboxIcon, LoaderCircle } from "lucide-react";
@@ -24,38 +31,41 @@ export function AgentInboxView<
   ThreadValues extends Record<string, any> = Record<string, any>,
 >({ saveScrollPosition, containerRef }: AgentInboxViewProps<ThreadValues>) {
   const { updateQueryParams, getSearchParam } = useQueryParams();
-  const { loading, threadData, fetchThreads } = useThreadsContext<ThreadValues>();
-  
+  const { loading, threadData, fetchThreads } =
+    useThreadsContext<ThreadValues>();
+
   const selectedInbox = getSearchParam(INBOX_PARAM) as ThreadStatusWithAll;
   const offsetParam = getSearchParam(OFFSET_PARAM);
   const limitParam = getSearchParam(LIMIT_PARAM);
   const _offset = offsetParam ? parseInt(offsetParam, 10) : undefined;
   const _limit = limitParam ? parseInt(limitParam, 10) : undefined;
-  
+
   const threadId = getSearchParam(THREAD_ID_PARAM);
-  const dateSortParam = getSearchParam(DATE_SORT_PARAM) as "newest" | "oldest" | undefined;
+  const dateSortParam = getSearchParam(DATE_SORT_PARAM) as
+    | "newest"
+    | "oldest"
+    | undefined;
   const dateSort = dateSortParam || "newest";
-  
+
   // Create refs to track previous values to avoid infinite loops
   const prevThreadIdRef = React.useRef<string | null>(null);
   const prevDateSortRef = React.useRef<string | null>(null);
-  
+
   // Keep existing scroll position logic
   const scrollableContentRef = React.useRef<HTMLDivElement>(null);
 
-  const noThreadsFound =
-    threadData !== undefined && threadData.length === 0;
+  const noThreadsFound = threadData !== undefined && threadData.length === 0;
 
   // Filter thread data based on search
   const threadDataToRender = React.useMemo(() => {
     // If searching for a specific thread ID, filter by that
     if (threadId) {
-      return threadData.filter(td => td.thread.thread_id === threadId);
+      return threadData.filter((td) => td.thread.thread_id === threadId);
     }
-    
+
     // Otherwise show all threads with optional date sorting
     const sortedData = [...threadData];
-    
+
     // Apply date sorting
     if (dateSort === "newest") {
       sortedData.sort((a, b) => {
@@ -70,7 +80,7 @@ export function AgentInboxView<
         return dateA.getTime() - dateB.getTime();
       });
     }
-    
+
     return sortedData;
   }, [threadData, threadId, dateSort]);
 
@@ -78,10 +88,7 @@ export function AgentInboxView<
     (threadId: string) => {
       try {
         saveScrollPosition(scrollableContentRef.current);
-        updateQueryParams(
-          VIEW_STATE_THREAD_QUERY_PARAM,
-          threadId,
-        );
+        updateQueryParams(VIEW_STATE_THREAD_QUERY_PARAM, threadId);
       } catch (e) {
         logger.error("Error occurred while updating query params", e);
       }
@@ -109,23 +116,24 @@ export function AgentInboxView<
   React.useEffect(() => {
     // Skip if no changes or already fetching the same data
     if (
-      (prevThreadIdRef.current === threadId && prevDateSortRef.current === dateSort) ||
+      (prevThreadIdRef.current === threadId &&
+        prevDateSortRef.current === dateSort) ||
       !selectedInbox
     ) {
       return;
     }
-    
+
     // Update refs with current values
     prevThreadIdRef.current = threadId || null;
     prevDateSortRef.current = dateSort;
-    
+
     // Only fetch if there's an actual change that requires fetching
-    if ((threadId || dateSort !== "newest")) {
+    if (threadId || dateSort !== "newest") {
       // Use setTimeout to prevent potential render loops and double-effects in dev mode
       const timerId = setTimeout(() => {
         fetchThreads(selectedInbox);
       }, 0);
-      
+
       return () => clearTimeout(timerId);
     }
   }, [threadId, dateSort, selectedInbox, fetchThreads]);

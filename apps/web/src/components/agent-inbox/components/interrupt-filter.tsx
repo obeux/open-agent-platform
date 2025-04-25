@@ -3,24 +3,24 @@
 import { useEffect, useState, useRef } from "react";
 import { FilterIcon } from "lucide-react";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
 } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useQueryParams } from "../hooks/use-query-params";
 import {
-    ALLOWED_ACTIONS_PARAM,
-    INTERRUPT_TITLE_PARAM,
-    INBOX_PARAM,
+  ALLOWED_ACTIONS_PARAM,
+  INTERRUPT_TITLE_PARAM,
+  INBOX_PARAM,
 } from "../constants";
 import { cn } from "@/lib/utils";
 
@@ -32,24 +32,24 @@ type InterruptFilterProps = {
 
 export function InterruptFilter({ className }: InterruptFilterProps) {
   const { updateQueryParams, getSearchParam } = useQueryParams();
-  
+
   // Use useState instead of react-hook-form
   const [allowedActions, setAllowedActions] = useState<AllowedAction[]>([]);
   const [interruptTitle, setInterruptTitle] = useState("");
-  
+
   // Track initialization
   const isInitializedRef = useRef(false);
-  
+
   // Initialize values from URL params
   useEffect(() => {
     // Skip if already initialized or not in browser
-    if (isInitializedRef.current || typeof window === 'undefined') {
+    if (isInitializedRef.current || typeof window === "undefined") {
       return;
     }
-    
+
     const allowedActionsParam = getSearchParam(ALLOWED_ACTIONS_PARAM);
     const interruptTitleParam = getSearchParam(INTERRUPT_TITLE_PARAM);
-    
+
     // Parse allowed actions from comma-separated string
     if (allowedActionsParam) {
       const actions = allowedActionsParam.split(",") as AllowedAction[];
@@ -57,13 +57,13 @@ export function InterruptFilter({ className }: InterruptFilterProps) {
     } else {
       setAllowedActions([]);
     }
-    
+
     if (interruptTitleParam) {
       setInterruptTitle(interruptTitleParam);
     } else {
       setInterruptTitle("");
     }
-    
+
     // Mark as initialized
     isInitializedRef.current = true;
   }, [getSearchParam]);
@@ -99,9 +99,12 @@ export function InterruptFilter({ className }: InterruptFilterProps) {
     setAllowedActions([]);
     setInterruptTitle("");
   };
-  
+
   // Handle checkbox changes
-  const handleActionChange = (action: AllowedAction, checked: boolean | "indeterminate") => {
+  const handleActionChange = (
+    action: AllowedAction,
+    checked: boolean | "indeterminate",
+  ) => {
     if (checked === true) {
       // Add the action if it doesn't exist
       if (!allowedActions.includes(action)) {
@@ -109,14 +112,13 @@ export function InterruptFilter({ className }: InterruptFilterProps) {
       }
     } else {
       // Remove the action
-      setAllowedActions(allowedActions.filter(a => a !== action));
+      setAllowedActions(allowedActions.filter((a) => a !== action));
     }
   };
 
   // Count active filters
-  const activeFilterCount = 
-    (allowedActions.length > 0 ? 1 : 0) + 
-    (interruptTitle ? 1 : 0);
+  const activeFilterCount =
+    (allowedActions.length > 0 ? 1 : 0) + (interruptTitle ? 1 : 0);
 
   return (
     <div className={cn("flex items-center", className)}>
@@ -127,13 +129,13 @@ export function InterruptFilter({ className }: InterruptFilterProps) {
             size="sm"
             className={cn(
               "gap-1 border-dashed",
-              activeFilterCount > 0 && "border-primary"
+              activeFilterCount > 0 && "border-primary",
             )}
           >
             <FilterIcon className="h-4 w-4" />
             Interrupt Filters
             {activeFilterCount > 0 && (
-              <span className="ml-1 rounded-full bg-primary px-1.5 py-0.5 text-xs text-white">
+              <span className="bg-primary ml-1 rounded-full px-1.5 py-0.5 text-xs text-white">
                 {activeFilterCount}
               </span>
             )}
@@ -150,26 +152,28 @@ export function InterruptFilter({ className }: InterruptFilterProps) {
               <div>
                 <label className="text-sm font-medium">Allowed Actions</label>
                 <div className="mt-1 space-y-2">
-                  {(["edit", "accept", "respond", "ignore"] as const).map((action) => (
-                    <div
-                      key={action}
-                      className="flex items-center space-x-2"
-                    >
-                      <Checkbox
-                        id={`action-${action}`}
-                        checked={allowedActions.includes(action)}
-                        onCheckedChange={(checked: boolean | "indeterminate") => 
-                          handleActionChange(action, checked)
-                        }
-                      />
-                      <label
-                        htmlFor={`action-${action}`}
-                        className="text-sm capitalize"
+                  {(["edit", "accept", "respond", "ignore"] as const).map(
+                    (action) => (
+                      <div
+                        key={action}
+                        className="flex items-center space-x-2"
                       >
-                        {action}
-                      </label>
-                    </div>
-                  ))}
+                        <Checkbox
+                          id={`action-${action}`}
+                          checked={allowedActions.includes(action)}
+                          onCheckedChange={(
+                            checked: boolean | "indeterminate",
+                          ) => handleActionChange(action, checked)}
+                        />
+                        <label
+                          htmlFor={`action-${action}`}
+                          className="text-sm capitalize"
+                        >
+                          {action}
+                        </label>
+                      </div>
+                    ),
+                  )}
                 </div>
               </div>
 
@@ -215,4 +219,4 @@ export function InterruptFilter({ className }: InterruptFilterProps) {
       </Popover>
     </div>
   );
-} 
+}

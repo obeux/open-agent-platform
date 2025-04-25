@@ -200,21 +200,21 @@ export function ThreadsProvider<
   const offsetParam = searchParams.get(OFFSET_PARAM);
   const inboxParam = searchParams.get(INBOX_PARAM);
   const dateSortParam = searchParams.get(DATE_SORT_PARAM);
-  
+
   // Track previous parameter values to avoid unnecessary fetches
   const prevParamsRef = React.useRef({
     limit: limitParam,
     offset: offsetParam,
     inbox: inboxParam,
-    dateSort: dateSortParam
+    dateSort: dateSortParam,
   });
 
   // Memoize the getSearchParam to ensure it doesn't change on every render
   const memoizedGetSearchParam = React.useCallback(
     (name: string) => getSearchParam(name),
-    [getSearchParam]
+    [getSearchParam],
   );
-  
+
   const fetchThreads = React.useCallback(
     async (inbox: ThreadStatusWithAll) => {
       setLoading(true);
@@ -254,7 +254,7 @@ export function ThreadsProvider<
 
         // Check for thread ID search
         const threadIdParam = memoizedGetSearchParam(THREAD_ID_PARAM);
-        
+
         // If searching by specific thread ID, use fetchSingleThread instead
         if (threadIdParam) {
           try {
@@ -375,11 +375,14 @@ export function ThreadsProvider<
         processedData.push(...results);
 
         // Apply server-side sorting based on dateSort parameter
-        const dateSortParam = memoizedGetSearchParam(DATE_SORT_PARAM) as "newest" | "oldest" | undefined;
+        const dateSortParam = memoizedGetSearchParam(DATE_SORT_PARAM) as
+          | "newest"
+          | "oldest"
+          | undefined;
         const dateSort = dateSortParam || "newest";
-        
+
         const sortedData = [...processedData];
-        
+
         // Apply date sorting based on the dateSort parameter
         if (dateSort === "newest") {
           sortedData.sort((a, b) => {
@@ -404,18 +407,21 @@ export function ThreadsProvider<
     },
     [agentInboxes, getItem, memoizedGetSearchParam, toast],
   );
-  
+
   // Create a stable callback for fetching threads to avoid infinite loops
-  const stableFetchThreads = React.useCallback((inbox: ThreadStatusWithAll) => {
-    // Skip if already loading
-    if (loading) return;
-    
-    try {
-      fetchThreads(inbox);
-    } catch (e) {
-      logger.error("Error occurred while fetching threads", e);
-    }
-  }, [fetchThreads, loading]);
+  const stableFetchThreads = React.useCallback(
+    (inbox: ThreadStatusWithAll) => {
+      // Skip if already loading
+      if (loading) return;
+
+      try {
+        fetchThreads(inbox);
+      } catch (e) {
+        logger.error("Error occurred while fetching threads", e);
+      }
+    },
+    [fetchThreads, loading],
+  );
 
   React.useEffect(() => {
     if (typeof window === "undefined") {
@@ -424,37 +430,40 @@ export function ThreadsProvider<
     if (!agentInboxes.length) {
       return;
     }
-    const inboxSearchParam = memoizedGetSearchParam(INBOX_PARAM) as ThreadStatusWithAll;
+    const inboxSearchParam = memoizedGetSearchParam(
+      INBOX_PARAM,
+    ) as ThreadStatusWithAll;
     if (!inboxSearchParam) {
       return;
     }
-    
+
     // Skip re-fetching if none of the core pagination parameters have changed
     const currentParams = {
       limit: limitParam,
       offset: offsetParam,
       inbox: inboxParam,
-      dateSort: dateSortParam
+      dateSort: dateSortParam,
     };
-    
+
     const prevParams = prevParamsRef.current;
-    const hasParamsChanged = 
+    const hasParamsChanged =
       prevParams.limit !== currentParams.limit ||
       prevParams.offset !== currentParams.offset ||
       prevParams.inbox !== currentParams.inbox ||
       prevParams.dateSort !== currentParams.dateSort;
-      
+
     // Update the ref with current values - do this before early return to track values correctly
-    prevParamsRef.current = {...currentParams};
-    
+    prevParamsRef.current = { ...currentParams };
+
     if (!hasParamsChanged) {
       return;
     }
-    
+
     // For dateSort changes specifically, we want to avoid double-execution in dev mode
     // and ensure consistent behavior, so use a slightly longer timeout
-    const timeoutDelay = prevParams.dateSort !== currentParams.dateSort ? 100 : 50;
-    
+    const timeoutDelay =
+      prevParams.dateSort !== currentParams.dateSort ? 100 : 50;
+
     // Use a slight delay to avoid React 18 double-effect in dev mode
     const timerId = setTimeout(() => {
       // Double-check we're not in a loading state before proceeding
@@ -462,9 +471,18 @@ export function ThreadsProvider<
         stableFetchThreads(inboxSearchParam);
       }
     }, timeoutDelay);
-    
+
     return () => clearTimeout(timerId);
-  }, [limitParam, offsetParam, inboxParam, dateSortParam, agentInboxes, stableFetchThreads, memoizedGetSearchParam, loading]);
+  }, [
+    limitParam,
+    offsetParam,
+    inboxParam,
+    dateSortParam,
+    agentInboxes,
+    stableFetchThreads,
+    memoizedGetSearchParam,
+    loading,
+  ]);
 
   const fetchSingleThread = React.useCallback(
     async (threadId: string): Promise<ThreadData<ThreadValues> | undefined> => {

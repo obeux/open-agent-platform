@@ -5,17 +5,14 @@ import { Search, SortAsc, SortDesc } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import { useQueryParams } from "../hooks/use-query-params";
-import {
-    DATE_SORT_PARAM,
-    THREAD_ID_PARAM,
-} from "../constants";
+import { DATE_SORT_PARAM, THREAD_ID_PARAM } from "../constants";
 import { cn } from "@/lib/utils";
 
 type InboxSearchProps = {
@@ -24,34 +21,37 @@ type InboxSearchProps = {
 
 export function InboxSearch({ className }: InboxSearchProps) {
   const { updateQueryParams, getSearchParam } = useQueryParams();
-  
+
   // Use simple useState instead of react-hook-form
   const [threadId, setThreadId] = useState("");
   const [dateSort, setDateSort] = useState<"newest" | "oldest">("newest");
-  
+
   // Track if we've already initialized from URL params
   const isInitializedRef = useRef(false);
-  
+
   // Initialize values from URL params once
   useEffect(() => {
     // Skip if already initialized or not in browser
-    if (isInitializedRef.current || typeof window === 'undefined') {
+    if (isInitializedRef.current || typeof window === "undefined") {
       return;
     }
-    
+
     const threadIdParam = getSearchParam(THREAD_ID_PARAM);
-    const dateSortParam = getSearchParam(DATE_SORT_PARAM) as "newest" | "oldest" | undefined;
-    
+    const dateSortParam = getSearchParam(DATE_SORT_PARAM) as
+      | "newest"
+      | "oldest"
+      | undefined;
+
     if (threadIdParam) {
       setThreadId(threadIdParam);
     }
-    
+
     if (dateSortParam === "oldest") {
       setDateSort("oldest");
     } else {
       setDateSort("newest");
     }
-    
+
     // Mark as initialized
     isInitializedRef.current = true;
   }, [getSearchParam]);
@@ -77,7 +77,7 @@ export function InboxSearch({ className }: InboxSearchProps) {
       <div className="flex items-center space-x-2">
         {/* Thread ID Search */}
         <div className="relative flex-1">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="text-muted-foreground absolute top-2.5 left-2 h-4 w-4" />
           <Input
             placeholder="Search by thread ID"
             className="pl-8"
@@ -96,16 +96,16 @@ export function InboxSearch({ className }: InboxSearchProps) {
             }}
           />
         </div>
-        
+
         {/* Search button */}
-        <Button 
+        <Button
           variant="secondary"
           onClick={handleThreadSearch}
           className="shrink-0"
         >
           Search
         </Button>
-        
+
         {/* Date Sort */}
         <div className="w-[180px] shrink-0">
           <Select
@@ -131,4 +131,4 @@ export function InboxSearch({ className }: InboxSearchProps) {
       </div>
     </div>
   );
-} 
+}
