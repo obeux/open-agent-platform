@@ -10702,6 +10702,7 @@ __metadata:
   resolution: "open-agent-platform@workspace:."
   dependencies:
     "@eslint/eslintrc": ^3.3.0
+    "@radix-ui/react-slot": ^1.2.0
     "@tailwindcss/oxide-linux-x64-gnu": ^4.0.1
     "@tsconfig/recommended": ^1.0.8
     "@typescript-eslint/eslint-plugin": ^8.26.1

@@ -39,6 +39,7 @@
   },
   "packageManager": "yarn@3.5.1",
   "dependencies": {
+    "@radix-ui/react-slot": "^1.2.0",
     "rehype-raw": "latest"
   }
 }
