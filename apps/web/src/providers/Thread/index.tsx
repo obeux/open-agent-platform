@@ -10,13 +10,14 @@ import { createClient } from "@/lib/client";
 import { Run, Thread, ThreadStatus } from "@langchain/langgraph-sdk";
 import React, { Dispatch, SetStateAction, useTransition } from "react";
 import { parseAsInteger, parseAsString, useQueryState } from "nuqs";
-import { IMPROPER_SCHEMA } from "../constants";
 import {
   getInterruptFromThread,
   processInterruptedThread,
   processThreadWithoutInterrupts,
 } from "./utils";
-import { logger } from "../utils/logger";
+import { IMPROPER_SCHEMA } from "@/constants";
+import { getDeployments } from "@/lib/environment/deployments";
+import { useAgentsContext } from "../Agents";
 
 type ThreadContentType<
   ThreadValues extends Record<string, any> = Record<string, any>,
@@ -55,8 +56,26 @@ const ThreadsContext = React.createContext<ThreadContentType | undefined>(
 function ThreadsProviderInternal<
   ThreadValues extends Record<string, any> = Record<string, any>,
 >({ children }: { children: React.ReactNode }): React.ReactElement {
+  const { agents } = useAgentsContext();
   const [agentInboxId] = useQueryState("agentInbox");
+  // Need to track agent ID too since this context is used in the chat page which doesn't follow the agent inbox pattern
+  const [agentId_] = useQueryState("agentId");
   const [isPending] = useTransition();
+
+  const getAgentInboxIds = (): [string, string] | undefined => {
+    if (agentInboxId) {
+      const [assistantId, deploymentId] = agentInboxId.split(":");
+      return [assistantId, deploymentId];
+    }
+    if (!agentId_) {
+      return undefined;
+    }
+    const deploymentId = agents.find((a) => a.assistant_id === agentId_)?.deploymentId;
+    if (!deploymentId) {
+      return undefined;
+    }
+    return [agentId_, deploymentId];
+  }
 
   // Get thread filter query params using the custom hook
   const [inboxParam] = useQueryState(
@@ -74,13 +93,6 @@ function ThreadsProviderInternal<
 
   const fetchThreads = React.useCallback(
     async (agentId: string, deploymentId: string) => {
-      if (!agentInboxId) {
-        toast.error("No agent inbox ID found", {
-          richColors: true,
-        });
-        return;
-      }
-
       setLoading(true);
 
       const client = createClient(deploymentId);
@@ -216,7 +228,6 @@ function ThreadsProviderInternal<
         setThreadData(sortedData);
         setHasMoreThreads(threads.length === limit);
       } catch (e) {
-        logger.error("Failed to fetch threads", e);
         toast.error("Failed to load threads. Please try again.");
       } finally {
         // Always reset loading state, even after errors
@@ -241,7 +252,6 @@ function ThreadsProviderInternal<
       // Fetch threads
       fetchThreads(assistantId, deploymentId);
     } catch (e) {
-      logger.error("Error occurred while fetching threads", e);
       toast.error("Failed to load threads. Please try again.");
       // Always reset loading state in case of error
       setLoading(false);
@@ -250,14 +260,11 @@ function ThreadsProviderInternal<
 
   const fetchSingleThread = React.useCallback(
     async (threadId: string): Promise<ThreadData<ThreadValues> | undefined> => {
-      if (!agentInboxId) {
-        toast.error("No agent inbox ID found when fetching thread.", {
-          richColors: true,
-        });
+      const agentInboxIds = getAgentInboxIds() ?? [];
+      if (!agentInboxIds.length) {
         return;
       }
-
-      const [_, deploymentId] = agentInboxId.split(":");
+      const [_, deploymentId] = agentInboxIds;
       const client = createClient(deploymentId);
 
       try {
@@ -316,7 +323,6 @@ function ThreadsProviderInternal<
           invalidSchema: undefined,
         };
       } catch (error) {
-        logger.error("Error fetching single thread", error);
         toast.error("Failed to load thread details. Please try again.");
         return undefined;
       }
@@ -325,14 +331,11 @@ function ThreadsProviderInternal<
   );
 
   const ignoreThread = async (threadId: string) => {
-    if (!agentInboxId) {
-      toast.error("No agent inbox ID found when fetching thread.", {
-        richColors: true,
-      });
+    const agentInboxIds = getAgentInboxIds() ?? [];
+    if (!agentInboxIds.length) {
       return;
     }
-
-    const [_, deploymentId] = agentInboxId.split(":");
+    const [_, deploymentId] = agentInboxIds;
     const client = createClient(deploymentId);
 
     try {
@@ -350,7 +353,6 @@ function ThreadsProviderInternal<
         duration: 3000,
       });
     } catch (e) {
-      logger.error("Error ignoring thread", e);
       toast.error("Failed to ignore thread. Please try again.", {
         duration: 3000,
       });
@@ -373,34 +375,26 @@ function ThreadsProviderInternal<
           }>
         | undefined
     : Promise<Run> | undefined => {
-    if (!agentInboxId) {
-      toast.error("No agent inbox ID found when fetching thread.", {
-        richColors: true,
-      });
-      return;
-    }
-
-    const [assistantId, deploymentId] = agentInboxId.split(":");
-    const client = createClient(deploymentId);
-
-    try {
-      if (options?.stream) {
-        return client.runs.stream(threadId, assistantId, {
-          command: {
-            resume: response,
-          },
-          streamMode: "events",
-        }) as any; // Type assertion needed due to conditional return type
+      const agentInboxIds = getAgentInboxIds() ?? [];
+      if (!agentInboxIds.length) {
+        return;
       }
-      return client.runs.create(threadId, assistantId, {
+      const [assistantId, deploymentId] = agentInboxIds;
+      const client = createClient(deploymentId);
+
+    if (options?.stream) {
+      return client.runs.stream(threadId, assistantId, {
         command: {
           resume: response,
         },
+        streamMode: "events",
       }) as any; // Type assertion needed due to conditional return type
-    } catch (e: any) {
-      logger.error("Error sending human response", e);
-      throw e;
     }
+    return client.runs.create(threadId, assistantId, {
+      command: {
+        resume: response,
+      },
+    }) as any; // Type assertion needed due to conditional return type
   };
 
   const contextValue: ThreadContentType = {
