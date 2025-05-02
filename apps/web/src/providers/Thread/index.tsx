@@ -16,7 +16,6 @@ import {
   processThreadWithoutInterrupts,
 } from "./utils";
 import { IMPROPER_SCHEMA } from "@/constants";
-import { getDeployments } from "@/lib/environment/deployments";
 import { useAgentsContext } from "../Agents";
 
 type ThreadContentType<
@@ -70,12 +69,14 @@ function ThreadsProviderInternal<
     if (!agentId_) {
       return undefined;
     }
-    const deploymentId = agents.find((a) => a.assistant_id === agentId_)?.deploymentId;
+    const deploymentId = agents.find(
+      (a) => a.assistant_id === agentId_,
+    )?.deploymentId;
     if (!deploymentId) {
       return undefined;
     }
     return [agentId_, deploymentId];
-  }
+  };
 
   // Get thread filter query params using the custom hook
   const [inboxParam] = useQueryState(
@@ -227,7 +228,7 @@ function ThreadsProviderInternal<
 
         setThreadData(sortedData);
         setHasMoreThreads(threads.length === limit);
-      } catch (e) {
+      } catch (_) {
         toast.error("Failed to load threads. Please try again.");
       } finally {
         // Always reset loading state, even after errors
@@ -251,7 +252,7 @@ function ThreadsProviderInternal<
     try {
       // Fetch threads
       fetchThreads(assistantId, deploymentId);
-    } catch (e) {
+    } catch (_) {
       toast.error("Failed to load threads. Please try again.");
       // Always reset loading state in case of error
       setLoading(false);
@@ -322,7 +323,7 @@ function ThreadsProviderInternal<
           interrupts: undefined,
           invalidSchema: undefined,
         };
-      } catch (error) {
+      } catch (_) {
         toast.error("Failed to load thread details. Please try again.");
         return undefined;
       }
@@ -352,7 +353,7 @@ function ThreadsProviderInternal<
         description: "Ignored thread",
         duration: 3000,
       });
-    } catch (e) {
+    } catch (_) {
       toast.error("Failed to ignore thread. Please try again.", {
         duration: 3000,
       });
@@ -375,12 +376,12 @@ function ThreadsProviderInternal<
           }>
         | undefined
     : Promise<Run> | undefined => {
-      const agentInboxIds = getAgentInboxIds() ?? [];
-      if (!agentInboxIds.length) {
-        return;
-      }
-      const [assistantId, deploymentId] = agentInboxIds;
-      const client = createClient(deploymentId);
+    const agentInboxIds = getAgentInboxIds() ?? [];
+    if (!agentInboxIds.length) {
+      return;
+    }
+    const [assistantId, deploymentId] = agentInboxIds;
+    const client = createClient(deploymentId);
 
     if (options?.stream) {
       return client.runs.stream(threadId, assistantId, {

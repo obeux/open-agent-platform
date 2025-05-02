@@ -82,8 +82,8 @@ export default function useInterruptedActions<
     VIEW_STATE_THREAD_QUERY_PARAM,
     parseAsString,
   );
-    const [agentId_] = useQueryState("agentId");
-  
+  const [agentId_] = useQueryState("agentId");
+
   const getAgentInboxIds = (): [string, string] | undefined => {
     if (agentInboxId) {
       const [assistantId, deploymentId] = agentInboxId.split(":");
@@ -92,12 +92,14 @@ export default function useInterruptedActions<
     if (!agentId_) {
       return undefined;
     }
-    const deploymentId = agents.find((a) => a.assistant_id === agentId_)?.deploymentId;
+    const deploymentId = agents.find(
+      (a) => a.assistant_id === agentId_,
+    )?.deploymentId;
     if (!deploymentId) {
       return undefined;
     }
     return [agentId_, deploymentId];
-  }
+  };
 
   const { fetchSingleThread, fetchThreads, sendHumanResponse, ignoreThread } =
     useThreadsContext<ThreadValues>();

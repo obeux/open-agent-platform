@@ -14,42 +14,42 @@ export interface HumanInterruptConfig {
   allow_accept: boolean;
 }
 /**
-* Represents a request for human action within the graph execution.
-* Contains the action type and any associated arguments needed for the action.
-*
-* @property {string} action - The type or name of action being requested (e.g., "Approve XYZ action")
-* @property {Record<string, any>} args - Key-value pairs of arguments needed for the action
-*/
+ * Represents a request for human action within the graph execution.
+ * Contains the action type and any associated arguments needed for the action.
+ *
+ * @property {string} action - The type or name of action being requested (e.g., "Approve XYZ action")
+ * @property {Record<string, any>} args - Key-value pairs of arguments needed for the action
+ */
 export interface ActionRequest {
   action: string;
   args: Record<string, any>;
 }
 /**
-* Represents an interrupt triggered by the graph that requires human intervention.
-* This is passed to the `interrupt` function when execution is paused for human input.
-*
-* @property {ActionRequest} action_request - The specific action being requested from the human
-* @property {HumanInterruptConfig} config - Configuration defining what actions are allowed
-* @property {string} [description] - Optional detailed description of what input is needed
-*/
+ * Represents an interrupt triggered by the graph that requires human intervention.
+ * This is passed to the `interrupt` function when execution is paused for human input.
+ *
+ * @property {ActionRequest} action_request - The specific action being requested from the human
+ * @property {HumanInterruptConfig} config - Configuration defining what actions are allowed
+ * @property {string} [description] - Optional detailed description of what input is needed
+ */
 export interface HumanInterrupt {
   action_request: ActionRequest;
   config: HumanInterruptConfig;
   description?: string;
 }
 /**
-* The response provided by a human to an interrupt, which is returned when graph execution resumes.
-*
-* @property {("accept"|"ignore"|"response"|"edit")} type - The type of response:
-*   - "accept": Approves the current state without changes
-*   - "ignore": Skips/ignores the current step
-*   - "response": Provides text feedback or instructions
-*   - "edit": Modifies the current state/content
-* @property {null|string|ActionRequest} args - The response payload:
-*   - null: For ignore/accept actions
-*   - string: For text responses
-*   - ActionRequest: For edit actions with updated content
-*/
+ * The response provided by a human to an interrupt, which is returned when graph execution resumes.
+ *
+ * @property {("accept"|"ignore"|"response"|"edit")} type - The type of response:
+ *   - "accept": Approves the current state without changes
+ *   - "ignore": Skips/ignores the current step
+ *   - "response": Provides text feedback or instructions
+ *   - "edit": Modifies the current state/content
+ * @property {null|string|ActionRequest} args - The response payload:
+ *   - null: For ignore/accept actions
+ *   - string: For text responses
+ *   - ActionRequest: For edit actions with updated content
+ */
 export type HumanResponse = {
   type: "accept" | "ignore" | "response" | "edit";
   args: null | string | ActionRequest;

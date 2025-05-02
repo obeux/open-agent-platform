@@ -115,13 +115,13 @@ export function AssistantMessage({
     <div className="group mr-auto flex items-start gap-2">
       {isToolResult ? (
         <>
-        <ToolResult message={message} />
-        <Interrupt
-          interruptValue={threadInterrupt?.value}
-          isLastMessage={isLastMessage}
-          hasNoAIOrToolMessages={hasNoAIOrToolMessages}
-        />
-      </>
+          <ToolResult message={message} />
+          <Interrupt
+            interruptValue={threadInterrupt?.value}
+            isLastMessage={isLastMessage}
+            hasNoAIOrToolMessages={hasNoAIOrToolMessages}
+          />
+        </>
       ) : (
         <div className="flex flex-col gap-2">
           {contentString.length > 0 && (
@@ -149,10 +149,10 @@ export function AssistantMessage({
             />
           )}
           <Interrupt
-              interruptValue={threadInterrupt?.value}
-              isLastMessage={isLastMessage}
-              hasNoAIOrToolMessages={hasNoAIOrToolMessages}
-            />
+            interruptValue={threadInterrupt?.value}
+            isLastMessage={isLastMessage}
+            hasNoAIOrToolMessages={hasNoAIOrToolMessages}
+          />
           <div
             className={cn(
               "mr-auto flex items-center gap-2 transition-opacity",

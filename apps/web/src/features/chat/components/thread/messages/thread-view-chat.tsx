@@ -26,10 +26,10 @@ export function ThreadViewChat({ interrupt }: ThreadViewChatProps) {
       setThreadData({
         thread,
         interrupts: Array.isArray(interrupt) ? interrupt : [interrupt],
-        status: "interrupted"
+        status: "interrupted",
       });
     });
-  }, [interrupt, threadId])
+  }, [interrupt, threadId]);
 
   const handleShowSidePanel = (
     showState: boolean,
