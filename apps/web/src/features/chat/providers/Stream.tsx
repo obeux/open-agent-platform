@@ -15,7 +15,11 @@ import { useAgentsContext } from "@/providers/Agents";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-export type StateType = { messages: Message[]; ui?: UIMessage[] };
+export type StateType = {
+  messages: Message[];
+  ui?: UIMessage[];
+  context?: Record<string, any>;
+};
 
 const useTypedStream = useStream<
   StateType,
@@ -23,6 +27,7 @@ const useTypedStream = useStream<
     UpdateType: {
       messages?: Message[] | Message | string;
       ui?: (UIMessage | RemoveUIMessage)[] | UIMessage | RemoveUIMessage;
+      context?: Record<string, any>;
     };
     CustomEventType: UIMessage | RemoveUIMessage;
   }
