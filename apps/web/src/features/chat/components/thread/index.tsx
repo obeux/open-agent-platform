@@ -342,7 +342,7 @@ export function Thread() {
         </StickToBottom>
       </div>
 
-      <div className="relative flex flex-col border-t border-b border-l rounded-s-lg">
+      <div className="relative flex flex-col rounded-s-lg border-t border-b border-l">
         <div className="absolute inset-0 flex min-w-[30vw] flex-col">
           <div className="grid grid-cols-[1fr_auto] border-b p-4">
             <ArtifactTitle className="truncate overflow-hidden" />
