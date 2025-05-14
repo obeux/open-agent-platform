@@ -6,7 +6,7 @@ Open Agent Platform is a no-code agent building platform. These agents can be co
 
 ## Overview
 
-Open Agent Platform provides a modern, web-based interface for creating, managing, and interacting with LangGraph agents. It's designed with simplicity in mind, making it accessible to users without technical expertise, while still offering advanced capabilities for developers.
+Open Agent Platform provides a web-based interface for creating, managing, and interacting with LangGraph agents. It's designed with simplicity in mind, making it accessible to users without technical expertise, while still offering advanced capabilities for developers.
 
 ## Key Features
 
