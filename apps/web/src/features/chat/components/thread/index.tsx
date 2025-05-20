@@ -216,6 +216,8 @@ export function Thread() {
     handleFileUpload,
     dropRef,
     removeBlock,
+    dragOver,
+    handlePaste,
   } = useFileUpload();
   const [firstTokenReceived, setFirstTokenReceived] = useState(false);
 
@@ -422,7 +424,12 @@ export function Thread() {
 
               <div
                 ref={dropRef}
-                className="bg-muted relative z-10 mx-auto mb-8 w-full max-w-3xl rounded-2xl border shadow-xs"
+                className={cn(
+                  "bg-muted relative z-10 mx-auto mb-8 w-full max-w-3xl rounded-2xl shadow-xs transition-all",
+                  dragOver
+                    ? "border-primary border-2 border-dotted"
+                    : "border border-solid",
+                )}
               >
                 <form
                   onSubmit={handleSubmit}
@@ -436,6 +443,7 @@ export function Thread() {
                     name="input"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
+                    onPaste={handlePaste}
                     onKeyDown={(e) => {
                       if (
                         e.key === "Enter" &&

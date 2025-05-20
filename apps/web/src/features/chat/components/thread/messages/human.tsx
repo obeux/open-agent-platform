@@ -8,37 +8,8 @@ import { BranchSwitcher, CommandBar } from "./shared";
 import { useQueryState } from "nuqs";
 import { useConfigStore } from "@/features/chat/hooks/use-config-store";
 import { useAuthContext } from "@/providers/Auth";
-import type { Base64ContentBlock } from "@langchain/core/messages";
 import { MultimodalPreview } from "./MultimodalPreview";
-// Type guard for Base64ContentBlock
-function isBase64ContentBlock(block: unknown): block is Base64ContentBlock {
-  if (typeof block !== "object" || block === null || !("type" in block))
-    return false;
-  // file type (legacy)
-  if (
-    (block as { type: unknown }).type === "file" &&
-    "source_type" in block &&
-    (block as { source_type: unknown }).source_type === "base64" &&
-    "mime_type" in block &&
-    typeof (block as { mime_type?: unknown }).mime_type === "string" &&
-    ((block as { mime_type: string }).mime_type.startsWith("image/") ||
-      (block as { mime_type: string }).mime_type === "application/pdf")
-  ) {
-    return true;
-  }
-  // image type (new)
-  if (
-    (block as { type: unknown }).type === "image" &&
-    "source_type" in block &&
-    (block as { source_type: unknown }).source_type === "base64" &&
-    "mime_type" in block &&
-    typeof (block as { mime_type?: unknown }).mime_type === "string" &&
-    (block as { mime_type: string }).mime_type.startsWith("image/")
-  ) {
-    return true;
-  }
-  return false;
-}
+import { isBase64ContentBlock } from "@/lib/multimodal-utils";
 
 function EditableContent({
   value,
@@ -135,7 +106,7 @@ export function HumanMessage({
           <div className="flex flex-col gap-2">
             {/* Render images and files if no text */}
             {Array.isArray(message.content) && message.content.length > 0 && (
-              <div className="flex flex-col items-end gap-2">
+              <div className="flex flex-wrap items-end justify-end gap-2">
                 {message.content.reduce<React.ReactNode[]>(
                   (acc, block, idx) => {
                     if (isBase64ContentBlock(block)) {
