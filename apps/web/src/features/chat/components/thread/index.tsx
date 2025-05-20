@@ -209,7 +209,7 @@ export function Thread() {
     "hideToolCalls",
     parseAsBoolean.withDefault(false),
   );
-  const [hasInput, setHasInput] = useState("");
+  const [hasInput, setHasInput] = useState(false);
   const {
     contentBlocks,
     setContentBlocks,
@@ -281,7 +281,7 @@ export function Thread() {
     const formData = new FormData(form);
     const content = (formData.get("input") as string | undefined)?.trim() ?? "";
 
-    setHasInput("");
+    setHasInput(false);
     if (!agentId) return;
     if (
       (content.trim().length === 0 && contentBlocks.length === 0) ||
@@ -441,8 +441,7 @@ export function Thread() {
                   />
                   <textarea
                     name="input"
-                    value={hasInput}
-                    onChange={(e) => setHasInput(e.target.value)}
+                    onChange={(e) => setHasInput(!!e.target.value.trim())}
                     onPaste={handlePaste}
                     onKeyDown={(e) => {
                       if (
@@ -508,8 +507,7 @@ export function Thread() {
                         type="submit"
                         className="ml-auto shadow-md transition-all"
                         disabled={
-                          isLoading ||
-                          (!hasInput.trim() && contentBlocks.length === 0)
+                          isLoading || (!hasInput && contentBlocks.length === 0)
                         }
                       >
                         Send
