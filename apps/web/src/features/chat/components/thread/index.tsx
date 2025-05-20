@@ -19,7 +19,13 @@ import {
 import { HumanMessage } from "@/features/chat/components/thread/messages/human";
 import { LangGraphLogoSVG } from "@/components/icons/langgraph";
 import { TooltipIconButton } from "@/components/ui/tooltip-icon-button";
-import { ArrowDown, LoaderCircle, SquarePen, AlertCircle, Plus } from "lucide-react";
+import {
+  ArrowDown,
+  LoaderCircle,
+  SquarePen,
+  AlertCircle,
+  Plus,
+} from "lucide-react";
 import { useQueryState, parseAsBoolean } from "nuqs";
 import { StickToBottom, useStickToBottomContext } from "use-stick-to-bottom";
 import { toast } from "sonner";
@@ -35,8 +41,6 @@ import { isUserSpecifiedDefaultAgent } from "@/lib/agent-utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useFileUpload } from "@/hooks/use-file-upload";
 import { ContentBlocksPreview } from "./messages/ContentBlocksPreview";
-import { MultimodalPreview } from "./messages/MultimodalPreview";
-
 
 function StickyToBottomContent(props: {
   content: ReactNode;
@@ -205,7 +209,7 @@ export function Thread() {
     "hideToolCalls",
     parseAsBoolean.withDefault(false),
   );
-  const [hasInput, setHasInput] = useState(false);
+  const [input, setInput] = useState("");
   const {
     contentBlocks,
     setContentBlocks,
@@ -275,11 +279,12 @@ export function Thread() {
     const formData = new FormData(form);
     const content = (formData.get("input") as string | undefined)?.trim() ?? "";
 
-    setHasInput(false);
-
-    if (!content || isLoading) return;
+    setInput("");
     if (!agentId) return;
-    if ((content.trim().length === 0 && contentBlocks.length === 0) || isLoading)
+    if (
+      (content.trim().length === 0 && contentBlocks.length === 0) ||
+      isLoading
+    )
       return;
     setFirstTokenReceived(false);
 
@@ -415,18 +420,22 @@ export function Thread() {
 
               <ScrollToBottom className="animate-in fade-in-0 zoom-in-95 absolute bottom-full left-1/2 mb-4 -translate-x-1/2" />
 
-              <div ref={dropRef} className="bg-muted relative z-10 mx-auto mb-8 w-full max-w-3xl rounded-2xl border shadow-xs">
+              <div
+                ref={dropRef}
+                className="bg-muted relative z-10 mx-auto mb-8 w-full max-w-3xl rounded-2xl border shadow-xs"
+              >
                 <form
                   onSubmit={handleSubmit}
                   className="mx-auto grid max-w-3xl grid-rows-[1fr_auto] gap-2"
                 >
-                    <ContentBlocksPreview
-                        blocks={contentBlocks}
-                        onRemove={removeBlock}
-                      />
+                  <ContentBlocksPreview
+                    blocks={contentBlocks}
+                    onRemove={removeBlock}
+                  />
                   <textarea
                     name="input"
-                    onChange={(e) => setHasInput(!!e.target.value.trim())}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => {
                       if (
                         e.key === "Enter" &&
@@ -443,11 +452,10 @@ export function Thread() {
                     className="field-sizing-content resize-none border-none bg-transparent p-3.5 pb-0 shadow-none ring-0 outline-none focus:ring-0 focus:outline-none"
                   />
 
-                  <div className="flex items-center justify-between p-2 pt-4">
-                    <div>
-                      <div className="flex items-center space-x-2">
+                  <div className="flex items-center gap-6 p-2 pt-4">
+                    <div className="flex items-center gap-6">
+                      <div className="flex items-center gap-2 space-x-2">
                         <NewThreadButton hasMessages={hasMessages} />
-
                         <Switch
                           id="render-tool-calls"
                           checked={hideToolCalls ?? false}
@@ -462,26 +470,27 @@ export function Thread() {
                       </div>
                     </div>
                     <Label
-                          htmlFor="file-input"
-                          className="flex cursor-pointer items-center gap-2"
-                        >
-                          <Plus className="size-5 text-gray-600" />
-                          <span className="text-sm text-gray-600">
-                            Upload PDF or Image
-                          </span>
-                        </Label>
-                        <input
-                          id="file-input"
-                          type="file"
-                          onChange={handleFileUpload}
-                          multiple
-                          accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
-                          className="hidden"
-                        />
+                      htmlFor="file-input"
+                      className="flex cursor-pointer"
+                    >
+                      <Plus className="size-5 text-gray-600" />
+                      <span className="text-sm text-gray-600">
+                        Upload PDF or Image
+                      </span>
+                    </Label>
+                    <input
+                      id="file-input"
+                      type="file"
+                      onChange={handleFileUpload}
+                      multiple
+                      accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
+                      className="hidden"
+                    />
                     {stream.isLoading ? (
                       <Button
                         key="stop"
                         onClick={() => stream.stop()}
+                        className="ml-auto"
                       >
                         <LoaderCircle className="h-4 w-4 animate-spin" />
                         Cancel
@@ -489,8 +498,11 @@ export function Thread() {
                     ) : (
                       <Button
                         type="submit"
-                        className="shadow-md transition-all"
-                        disabled={isLoading || !hasInput}
+                        className="ml-auto shadow-md transition-all"
+                        disabled={
+                          isLoading ||
+                          (!input.trim() && contentBlocks.length === 0)
+                        }
                       >
                         Send
                       </Button>

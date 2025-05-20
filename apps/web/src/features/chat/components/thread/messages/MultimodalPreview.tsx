@@ -1,5 +1,5 @@
 import React from "react";
-import { File, Image as ImageIcon, X as XIcon } from "lucide-react";
+import { File, X as XIcon } from "lucide-react";
 import type { Base64ContentBlock } from "@langchain/core/messages";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -18,15 +18,6 @@ export const MultimodalPreview: React.FC<MultimodalPreviewProps> = ({
   className,
   size = "md",
 }) => {
-  // Sizing
-  const sizeMap = {
-    sm: "h-10 w-10 text-base",
-    md: "h-16 w-16 text-lg",
-    lg: "h-24 w-24 text-xl",
-  };
-  const iconSize: string =
-    typeof sizeMap[size] === "string" ? sizeMap[size] : sizeMap["md"];
-
   // Image block
   if (
     block.type === "image" &&
