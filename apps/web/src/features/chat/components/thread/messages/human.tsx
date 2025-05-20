@@ -122,7 +122,6 @@ export function HumanMessage({
                   },
                   [],
                 )}
-                :
               </div>
             )}
             {/* Render text if present, otherwise fallback to file/image name */}
