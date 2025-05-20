@@ -200,7 +200,6 @@ export function useFileUpload({
   const handlePaste = async (
     e: React.ClipboardEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => {
-    e.preventDefault();
     const items = e.clipboardData.items;
     if (!items) return;
     const files: File[] = [];
@@ -211,7 +210,12 @@ export function useFileUpload({
         if (file) files.push(file);
       }
     }
-    if (files.length === 0) return;
+    if (files.length === 0) {
+      // No files, allow default paste (text, etc)
+      return;
+    }
+    // Files present, handle as before and prevent default
+    e.preventDefault();
     const validFiles = files.filter((file) =>
       SUPPORTED_FILE_TYPES.includes(file.type),
     );
