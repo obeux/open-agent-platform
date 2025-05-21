@@ -8,7 +8,7 @@ import { Assistant } from "@langchain/langgraph-sdk";
  * @returns True if the agent is the default, false otherwise.
  */
 export function isDefaultAssistant(agent: Agent | Assistant): boolean {
-  return agent.metadata?._x_oap_is_default === true;
+  return agent.metadata?._x_oap_is_default === true || agent.metadata?.created_by === "system";
 }
 
 export function isPrimaryAssistant(agent: Agent | Assistant): boolean {
