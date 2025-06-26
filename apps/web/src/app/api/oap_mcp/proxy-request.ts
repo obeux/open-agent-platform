@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { getMCPServerConfigs, isMCPServerConfig } from "@/lib/environment/mcp-servers";
+import {
+  getMCPServerConfigs,
+  isMCPServerConfig,
+} from "@/lib/environment/mcp-servers";
 import { validate } from "uuid";
 import { MCPServerConfig } from "@/types/mcp";
 
@@ -86,13 +89,15 @@ function getIdAndPath(url: URL): {
   id: string | null;
   pathRest: string;
 } {
-    // Extract the path and ID from the new format
+  // Extract the path and ID from the new format
   // Example: /api/oap_mcp/proxy/[id] -> extract [id] and use it for the path
-  const pathMatch = url.pathname.match(/^\/api\/oap_mcp\/proxy\/([^/]+)(?:\/(.*))?$/);
-  
+  const pathMatch = url.pathname.match(
+    /^\/api\/oap_mcp\/proxy\/([^/]+)(?:\/(.*))?$/,
+  );
+
   let id: string | null = null;
   let pathRest = "";
-  
+
   if (pathMatch) {
     // New path format: /api/oap_mcp/proxy/[id]
     id = pathMatch[1];

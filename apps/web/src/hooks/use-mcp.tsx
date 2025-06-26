@@ -10,7 +10,9 @@ function getMCPUrlOrThrow(id?: string) {
   }
 
   const mcpServers = getMCPServerConfigs();
-  const mcpServer = id ? mcpServers.find((mcpServer) => mcpServer.id === id) : mcpServers[0];
+  const mcpServer = id
+    ? mcpServers.find((mcpServer) => mcpServer.id === id)
+    : mcpServers[0];
   if (!mcpServer) {
     throw new Error(`MCP server ${id} not found`);
   }

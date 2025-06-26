@@ -13,7 +13,7 @@ export function isMCPServerConfig(obj: unknown): obj is MCPServerConfig {
     "url" in obj &&
     typeof obj.url === "string"
   );
-};
+}
 
 /**
  * Loads the provided MCP server configs from the environment variable.
