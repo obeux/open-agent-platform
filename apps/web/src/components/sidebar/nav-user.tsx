@@ -5,6 +5,7 @@ import {
   ChevronsUpDown,
   LogOut,
   User,
+  Settings,
   Loader2,
   TriangleAlert,
 } from "lucide-react";
@@ -149,6 +150,11 @@ export function NavUser() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
 
+            <DropdownMenuItem onClick={() => router.push("/settings")}>
+              <Settings className="mr-2 h-4 w-4" />
+              Settings
+            </DropdownMenuItem>
+
             {isAuthenticated ? (
               <DropdownMenuItem
                 onClick={handleSignOut}
@@ -184,3 +190,4 @@ export function NavUser() {
     </SidebarMenu>
   );
 }
+
